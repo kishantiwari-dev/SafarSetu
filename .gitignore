@@ -1,0 +1,90 @@
+# Flutter and Dart outputs (root and nested Flutter packages)
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+/build_*/
+**/build_*/
+**/coverage/
+
+# IDE and editor state
+**/.idea/
+.vscode/
+.fleet/
+*.iml
+*.swp
+*.swo
+*~
+
+# Java and Maven/Gradle outputs
+**/target/
+**/.gradle/
+**/out/
+*.class
+*.jar
+*.war
+*.log
+**/logs/
+
+# Local environment and credentials
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+**/.local-secrets/
+*.dpapi
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/.pgpass
+**/pg_service.conf
+**/pgpass.conf
+**/postgresql.conf
+**/pg_hba.conf
+**/pg_ident.conf
+
+# Private keys and certificates
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# PostgreSQL data directories and runtime markers
+**/PG_VERSION
+**/postmaster.pid
+**/pg_wal/
+**/pg_tblspc/
+**/pg_log/
+**/pgdata/
+**/postgres-data/
+**/postgres_data/
+**/postgresql/data/
+**/pgsql/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Database backup/archive formats. SQL source migrations remain included.
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.tar
+*.tar.gz
+**/safarsetu_pre_migration_*.sql
+**/*backup*.sql
+**/backups/
+**/database-backups/
+**/SafarSetuBackups/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+# Generated Flutter web audit build
+ATM/release_web_audit/

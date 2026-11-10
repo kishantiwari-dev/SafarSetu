@@ -1,0 +1,10 @@
+{
+  "ticketId": "SYN-TICKET-001",
+  "idempotencyKey": "SYN-IDEMPOTENCY-001",
+  "busId": "BUS-SIM-001",
+  "boardingStopId": "BOTANICAL_GARDEN",
+  "destinationStopId": "M G ROAD",
+  "passengerCount": 2,
+  "boardedAt": "2026-10-26T10:00:00Z",
+  "tripId": "SYN-TRIP-001"
+}

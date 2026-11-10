@@ -1,0 +1,1 @@
+These files contain synthetic examples only. IDs beginning `SYN-` are local test values; `BUS-SIM-001` is an illustrative seed ID and must be checked against the configured development seed before submitting. Never use these values as real ETM or fleet identifiers.

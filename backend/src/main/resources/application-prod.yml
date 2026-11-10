@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  datasource:
+    hikari:
+      data-source-properties:
+        sslmode: verify-full
+safarsetu:
+  seed:
+    enabled: false
+  cors:
+    allowed-origin-patterns:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}

@@ -1,0 +1,9 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+safarsetu:
+  seed:
+    enabled: ${SEED_DEMO_DATA:true}
+  cors:
+    allowed-origin-patterns: http://localhost:*,http://127.0.0.1:*

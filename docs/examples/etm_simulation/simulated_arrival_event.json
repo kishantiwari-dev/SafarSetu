@@ -1,0 +1,7 @@
+{
+  "eventId": "SYN-ARRIVAL-001",
+  "tripId": "SYN-TRIP-001",
+  "busId": "BUS-SIM-001",
+  "stopId": "BOTANICAL_GARDEN",
+  "arrivedAt": "2026-10-26T10:05:00Z"
+}
