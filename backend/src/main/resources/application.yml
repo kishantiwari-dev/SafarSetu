@@ -35,6 +35,9 @@ server:
     include-binding-errors: never
     include-exception: false
 safarsetu:
+  eta:
+    average-speed-kmh: ${ETA_AVERAGE_SPEED_KMH:25}
+    route-distance-factor: ${ETA_ROUTE_DISTANCE_FACTOR:1.3}
   freshness:
     location-stale-after: ${LOCATION_STALE_AFTER:PT15M}
     occupancy-stale-after: ${OCCUPANCY_STALE_AFTER:PT30M}

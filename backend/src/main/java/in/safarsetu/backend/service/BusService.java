@@ -26,6 +26,10 @@ public class BusService {
     private static final Duration LOCATION_STALE_AFTER = Duration.ofMinutes(15);
     @Value("${safarsetu.freshness.location-stale-after:PT15M}")
     private Duration locationStaleAfter = LOCATION_STALE_AFTER;
+    @Value("${safarsetu.eta.average-speed-kmh:25}")
+    private double etaAverageSpeedKmh = 25;
+    @Value("${safarsetu.eta.route-distance-factor:1.3}")
+    private double etaRouteDistanceFactor = 1.3;
     @Value("${safarsetu.freshness.occupancy-stale-after:PT30M}")
     private Duration occupancyStaleAfter = Duration.ofMinutes(30);
     @Value("${safarsetu.crowding.moderate-percent:40}")
@@ -61,6 +65,10 @@ public class BusService {
         if (locationStaleAfter.isNegative() || locationStaleAfter.isZero()
                 || occupancyStaleAfter.isNegative() || occupancyStaleAfter.isZero()) {
             throw new IllegalStateException("Freshness thresholds must be positive ISO-8601 durations.");
+        }
+        if (!Double.isFinite(etaAverageSpeedKmh) || etaAverageSpeedKmh <= 0
+                || !Double.isFinite(etaRouteDistanceFactor) || etaRouteDistanceFactor < 1) {
+            throw new IllegalStateException("ETA speed and route-distance assumptions must be valid positive values.");
         }
         if (moderateCrowdingPercent < 1 || moderateCrowdingPercent >= highCrowdingPercent
                 || highCrowdingPercent >= nearlyFullCrowdingPercent || nearlyFullCrowdingPercent > 100) {
@@ -135,6 +143,67 @@ public class BusService {
                 : stale ? "STALE" : "FRESH";
         return new LocationDto(bus.getId(), latest.getLatitude(), latest.getLongitude(), latest.getRecordedAt(),
                 latest.getDataOrigin().name(), stale, freshness);
+    }
+
+    /** Estimates time to a downstream stop from a fresh recorded position and ordered route geometry. */
+    public EtaDto eta(String busId, String toStopId) {
+        Bus bus = buses.findById(busId).orElseThrow(() -> ApiException.notFound("Bus not found: " + busId));
+        List<RouteStop> sequence = requireRouteSequence(bus);
+        int destinationOrder = RouteStopSequence.indexOf(sequence, toStopId);
+        if (destinationOrder < 0) throw ApiException.badRequest("Destination stop is not on the bus route");
+        Instant calculatedAt = Instant.now();
+        BusLocation latest = locations.findFirstByBus_IdOrderByRecordedAtDesc(busId).orElse(null);
+        if (latest == null) return unavailableEta(busId, toStopId, "NO_LOCATION", bus.getDataOrigin().name(), null, calculatedAt);
+        if (latest.getBus() == null || !busId.equals(latest.getBus().getId())) {
+            throw ApiException.conflict("Latest location is associated with an inconsistent bus");
+        }
+        if (!validCoordinates(latest.getLatitude(), latest.getLongitude())) {
+            throw ApiException.conflict("Latest bus location has invalid coordinates");
+        }
+        if (latest.getRecordedAt() == null) throw ApiException.conflict("Latest bus location has no timestamp");
+        if (latest.getRecordedAt().isAfter(calculatedAt)) {
+            return unavailableEta(busId, toStopId, "FUTURE_LOCATION", latest.getDataOrigin().name(), latest.getRecordedAt(), calculatedAt);
+        }
+        if (Duration.between(latest.getRecordedAt(), calculatedAt).compareTo(locationStaleAfter) > 0) {
+            return unavailableEta(busId, toStopId, "STALE_LOCATION", latest.getDataOrigin().name(), latest.getRecordedAt(), calculatedAt);
+        }
+
+        int nearestOrder = 0;
+        double nearestMeters = Double.MAX_VALUE;
+        for (int i = 0; i < sequence.size(); i++) {
+            Stop stop = sequence.get(i).getStop();
+            if (!validCoordinates(stop.getLatitude(), stop.getLongitude())) continue;
+            double meters = distanceMeters(latest.getLatitude(), latest.getLongitude(), stop.getLatitude(), stop.getLongitude());
+            if (meters < nearestMeters) { nearestMeters = meters; nearestOrder = i; }
+        }
+        if (nearestMeters > 2_000) {
+            return unavailableEta(busId, toStopId, "LOCATION_OFF_ROUTE", latest.getDataOrigin().name(), latest.getRecordedAt(), calculatedAt);
+        }
+        if (nearestOrder >= destinationOrder) {
+            return unavailableEta(busId, toStopId, "DESTINATION_REACHED_OR_PASSED", latest.getDataOrigin().name(), latest.getRecordedAt(), calculatedAt);
+        }
+
+        double distanceMeters = nearestMeters;
+        for (int i = nearestOrder; i < destinationOrder; i++) {
+            Stop from = sequence.get(i).getStop();
+            Stop to = sequence.get(i + 1).getStop();
+            if (!validCoordinates(from.getLatitude(), from.getLongitude()) || !validCoordinates(to.getLatitude(), to.getLongitude())) {
+                return unavailableEta(busId, toStopId, "ROUTE_COORDINATES_MISSING", latest.getDataOrigin().name(), latest.getRecordedAt(), calculatedAt);
+            }
+            distanceMeters += distanceMeters(from.getLatitude(), from.getLongitude(), to.getLatitude(), to.getLongitude());
+        }
+        double routeKm = distanceMeters / 1_000 * etaRouteDistanceFactor;
+        int minutes = Math.max(1, (int) Math.ceil(routeKm / etaAverageSpeedKmh * 60));
+        String origin = latest.getDataOrigin().name();
+        String type = "SIMULATED".equals(origin) ? "SIMULATED_ROUTE_ESTIMATE" : "ROUTE_ESTIMATE";
+        return new EtaDto(busId, toStopId, minutes, routeKm, "AVAILABLE", origin, type,
+                String.format(java.util.Locale.ROOT, "Ordered stop coordinates with a %.1f km/h average-speed assumption and %.2f route-distance factor; excludes traffic and live speed.", etaAverageSpeedKmh, etaRouteDistanceFactor),
+                latest.getRecordedAt(), calculatedAt);
+    }
+
+    private static EtaDto unavailableEta(String busId, String destinationStopId, String status, String origin, Instant locationAt, Instant calculatedAt) {
+        return new EtaDto(busId, destinationStopId, null, null, status, origin, null,
+                "An ETA requires a recent bus location and valid ordered route-stop coordinates.", locationAt, calculatedAt);
     }
 
     public Page<StopDto> listStops(Pageable pageable) {

@@ -36,5 +36,7 @@ void main() {
     expect(find.text('Ticket-derived onboard estimate: 12'), findsOneWidget);
     expect(find.text('Confirmed reservations: 5'), findsOneWidget);
     expect(find.text('Passenger capacity remaining: 23'), findsOneWidget);
+    expect(find.text('18 / 30 seats'), findsOneWidget);
+    expect(find.text('18 seats · 60% provisionally available'), findsOneWidget);
   });
 }

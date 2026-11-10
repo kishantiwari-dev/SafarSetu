@@ -17,6 +17,9 @@ class Bus {
     required this.capacity,
     this.predictedOccupancy,
     this.etaMinutes,
+    this.etaStatus,
+    this.etaDataOrigin,
+    this.etaAssumption,
     required this.boardingStop,
     required this.destination,
     this.currentLocation,
@@ -44,6 +47,9 @@ class Bus {
   final int capacity;
   final int? predictedOccupancy;
   final int? etaMinutes;
+  final String? etaStatus;
+  final String? etaDataOrigin;
+  final String? etaAssumption;
   final String boardingStop;
   final String destination;
   final String? currentLocation;
@@ -82,6 +88,9 @@ class Bus {
         capacity: capacity,
         predictedOccupancy: passengers,
         etaMinutes: etaMinutes,
+        etaStatus: etaStatus,
+        etaDataOrigin: etaDataOrigin,
+        etaAssumption: etaAssumption,
         boardingStop: boardingStop,
         destination: destination,
         currentLocation: currentLocation,
@@ -101,6 +110,42 @@ class Bus {
         remainingPassengerCapacity: remainingCapacity,
         occupancyDataOrigin: sourceOrigin,
         occupancyStatus: status,
+      );
+
+  Bus withEta(
+          {required int? minutes,
+          required String? status,
+          required String? dataOrigin,
+          required String? assumption}) =>
+      Bus(
+        busId: busId,
+        route: route,
+        currentOccupancy: currentOccupancy,
+        capacity: capacity,
+        predictedOccupancy: predictedOccupancy,
+        etaMinutes: minutes,
+        etaStatus: status,
+        etaDataOrigin: dataOrigin,
+        etaAssumption: assumption,
+        boardingStop: boardingStop,
+        destination: destination,
+        currentLocation: currentLocation,
+        recommendation: recommendation,
+        source: source,
+        dataOrigin: this.dataOrigin,
+        routeId: routeId,
+        boardingStopId: boardingStopId,
+        destinationStopId: destinationStopId,
+        totalPassengerCapacity: totalPassengerCapacity,
+        occupancyFreshness: occupancyFreshness,
+        occupancyUpdatedAt: occupancyUpdatedAt,
+        crowdingCategory: crowdingCategory,
+        tripId: tripId,
+        backendAvailableSeats: backendAvailableSeats,
+        confirmedReservedPassengers: confirmedReservedPassengers,
+        remainingPassengerCapacity: remainingPassengerCapacity,
+        occupancyDataOrigin: occupancyDataOrigin,
+        occupancyStatus: occupancyStatus,
       );
 
   bool _validOccupancy(int? count) =>

@@ -97,7 +97,7 @@ class ApiBusRepository implements BusRepository {
                   occupancy.occupancyStatus == 'CALCULATED_WITH_WARNINGS');
           final responseHasTrip =
               responseMatchesRequest && occupancy.tripId != null;
-          return bus.withOccupancy(
+          final occupancyBus = bus.withOccupancy(
             passengers:
                 estimateIsScopedAndFresh ? occupancy.onboardPassengers : null,
             availableSeats: estimateIsScopedAndFresh
@@ -118,48 +118,80 @@ class ApiBusRepository implements BusRepository {
             remainingCapacity:
                 responseHasTrip ? occupancy.remainingPassengerCapacity : null,
           );
+          final eta = await _fetchEta(bus);
+          return occupancyBus.withEta(
+            minutes: _optionalResponseInt(eta, 'etaMinutes'),
+            status: eta['status'] as String?,
+            dataOrigin: eta['dataOrigin'] as String?,
+            assumption: eta['assumption'] as String?,
+          );
         } on ApiClientException {
-          return bus.withOccupancy(
-              passengers: null,
-              availableSeats: null,
-              freshness: 'UNKNOWN',
-              updatedAt: null,
-              category: 'UNKNOWN',
-              selectedTripId: requestedTripId,
-              sourceOrigin: null,
-              status: 'UNKNOWN',
-              reservedPassengers: null,
-              remainingCapacity: null);
+          return _withUnavailableOccupancy(bus, requestedTripId, 'API_ERROR');
         } on FormatException {
-          return bus.withOccupancy(
-              passengers: null,
-              availableSeats: null,
-              freshness: 'UNKNOWN',
-              updatedAt: null,
-              category: 'UNKNOWN',
-              selectedTripId: requestedTripId,
-              sourceOrigin: null,
-              status: 'UNKNOWN',
-              reservedPassengers: null,
-              remainingCapacity: null);
+          return _withUnavailableOccupancy(
+              bus, requestedTripId, 'INVALID_RESPONSE');
         } on TypeError {
-          return bus.withOccupancy(
-              passengers: null,
-              availableSeats: null,
-              freshness: 'UNKNOWN',
-              updatedAt: null,
-              category: 'UNKNOWN',
-              selectedTripId: requestedTripId,
-              sourceOrigin: null,
-              status: 'UNKNOWN',
-              reservedPassengers: null,
-              remainingCapacity: null);
+          return _withUnavailableOccupancy(
+              bus, requestedTripId, 'INVALID_RESPONSE');
         }
       }));
     } on FormatException {
       throw const BusRepositoryException(
           'The backend returned bus data that this app cannot display.');
     }
+  }
+
+  Future<Bus> _withUnavailableOccupancy(
+      Bus bus, String? requestedTripId, String occupancyStatus) async {
+    final eta = await _fetchEta(bus);
+    return bus
+        .withOccupancy(
+          passengers: null,
+          availableSeats: null,
+          freshness: 'UNKNOWN',
+          updatedAt: null,
+          category: 'UNKNOWN',
+          selectedTripId: requestedTripId,
+          sourceOrigin: null,
+          status: occupancyStatus,
+          reservedPassengers: null,
+          remainingCapacity: null,
+        )
+        .withEta(
+          minutes: _optionalResponseInt(eta, 'etaMinutes'),
+          status: eta['status'] as String?,
+          dataOrigin: eta['dataOrigin'] as String?,
+          assumption: eta['assumption'] as String?,
+        );
+  }
+
+  Future<Map<String, dynamic>> _fetchEta(Bus bus) async {
+    if (bus.destinationStopId == null) {
+      return const {'status': 'ROUTE_CONTEXT_MISSING'};
+    }
+    try {
+      return _asMap(await _client.getJson(
+        'buses/${Uri.encodeComponent(bus.busId)}/eta',
+        queryParameters: {'toStopId': bus.destinationStopId!},
+      ));
+    } on ApiClientException catch (error) {
+      return {
+        'status': 'API_ERROR',
+        'assumption':
+            'ETA request failed (HTTP ${error.statusCode ?? 'network'}).'
+      };
+    } on FormatException {
+      return const {'status': 'INVALID_RESPONSE'};
+    } on TypeError {
+      return const {'status': 'INVALID_RESPONSE'};
+    }
+  }
+
+  static int? _optionalResponseInt(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value == null) return null;
+    if (value is! num || !value.isFinite || value % 1 != 0) return null;
+    return value.toInt();
   }
 
   @override

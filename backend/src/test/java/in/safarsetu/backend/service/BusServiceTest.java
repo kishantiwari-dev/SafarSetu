@@ -117,6 +117,37 @@ class BusServiceTest {
     }
 
     @Test
+    void estimatesArrivalFromFreshLocationAndOrderedRouteStops() {
+        var fixture = fixture(20, 30, List.of("a", "b", "c"), List.of());
+        Stop start = fixture.stops().getFirst();
+        BusLocation location = new BusLocation("loc", fixture.bus(), start.getLatitude(), start.getLongitude(),
+                Instant.now().minusSeconds(30), DataOrigin.SIMULATED);
+        when(locations.findFirstByBus_IdOrderByRecordedAtDesc("bus")).thenReturn(Optional.of(location));
+
+        var eta = service.eta("bus", "c");
+
+        assertEquals("AVAILABLE", eta.status());
+        assertEquals("SIMULATED_ROUTE_ESTIMATE", eta.estimateType());
+        assertEquals("SIMULATED", eta.dataOrigin());
+        assertTrue(eta.etaMinutes() > 0);
+        assertTrue(eta.estimatedRouteDistanceKm() > 0);
+        assertTrue(eta.assumption().contains("excludes traffic and live speed"));
+    }
+
+    @Test
+    void refusesEtaWhenLocationIsMissingOrStale() {
+        fixture(20, 30, List.of("a", "b"), List.of());
+        assertEquals("NO_LOCATION", service.eta("bus", "b").status());
+        BusLocation stale = new BusLocation("old", new Bus("bus", "fleet", 20, 30,
+                new Route("route", "sim route", DataOrigin.SIMULATED, true), DataOrigin.SIMULATED, true),
+                28.0, 77.0, Instant.now().minusSeconds(16 * 60L), DataOrigin.SIMULATED);
+        when(locations.findFirstByBus_IdOrderByRecordedAtDesc("bus")).thenReturn(Optional.of(stale));
+        var eta = service.eta("bus", "b");
+        assertEquals("STALE_LOCATION", eta.status());
+        assertNull(eta.etaMinutes());
+    }
+
+    @Test
     void reportsFreshnessAndCrowdingFromRealTicketTimestampsWithoutCallingItRealtime() {
         var fresh = fixture(20, 30, List.of("a", "b", "c"), List.of());
         Ticket real = new Ticket("real-ticket", "key-real", fresh.bus(), fresh.stops().get(0), fresh.stops().get(2),

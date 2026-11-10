@@ -23,7 +23,7 @@ class DevelopmentDataSeederLocationTest {
         seeder.seedLocations(repository, buses, stops);
         seeder.seedLocations(repository, buses, stops);
 
-        assertEquals(19, locations.size());
+        assertEquals(22, locations.size());
         var first = locations.get("LOC-BUS-SIM-001-0");
         var source = stops.get("BOTANICAL_GARDEN");
         assertNotNull(first);
@@ -56,6 +56,7 @@ class DevelopmentDataSeederLocationTest {
         put(stops, "SHARDA", 28.4720, 77.4830);
         put(stops, "GBU", 28.4190, 77.5300);
         put(stops, "DADRI_RAIL", 28.5525, 77.5545);
+        put(stops, "ALPHA_1", 28.4712, 77.5070);
         put(stops, "KP_II", 28.4578, 77.5000);
         put(stops, "PARI_CHOWK", 28.4652, 77.5080);
         put(stops, "ALPHA_1", 28.4712, 77.5070);
@@ -68,7 +69,7 @@ class DevelopmentDataSeederLocationTest {
 
     private static Map<String, Bus> buses() {
         Map<String, Bus> buses = new HashMap<>();
-        for (int number : new int[]{1, 2, 3, 4, 6, 7, 8}) {
+        for (int number : new int[]{1, 2, 3, 4, 6, 7, 8, 11, 12, 13}) {
             String id = "BUS-SIM-%03d".formatted(number);
             buses.put(id, new Bus(id, id, 40, 50, null, DataOrigin.SIMULATED, true));
         }

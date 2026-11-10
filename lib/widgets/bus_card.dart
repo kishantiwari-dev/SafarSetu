@@ -53,12 +53,23 @@ class BusCard extends StatelessWidget {
                   size: 16, color: AppColors.secondaryText),
               const SizedBox(width: 5),
             ],
-            Text(
-                bus.etaMinutes == null
-                    ? 'ETA unavailable'
-                    : '${bus.etaMinutes} min',
-                style: const TextStyle(
-                    color: AppColors.primaryText, fontWeight: FontWeight.w600)),
+            Flexible(
+              child: Tooltip(
+                message:
+                    bus.etaAssumption ?? _etaUnavailableReason(bus.etaStatus),
+                child: Text(
+                  bus.etaMinutes == null
+                      ? _etaUnavailableLabel(bus.etaStatus)
+                      : '≈ ${bus.etaMinutes} min · ${bus.etaDataOrigin == 'SIMULATED' || bus.source == BusDataSource.mock ? 'simulated' : 'route estimate'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                      color: AppColors.primaryText,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
             FavouriteRouteButton(bus: bus),
           ]),
           const SizedBox(height: 13),
@@ -73,13 +84,13 @@ class BusCard extends StatelessWidget {
                   color: AppColors.secondaryText, fontSize: 12)),
           const SizedBox(height: 17),
           _OccupancyStat(
-            label: 'SEATS LIKELY AVAILABLE',
+            label: 'PROVISIONAL SEATS AVAILABLE',
             value: bus.predictedSeatsLeftPercent == null
                 ? 'Unavailable'
-                : '${bus.predictedSeatsLeftPercent}% seats left',
+                : '${bus.predictedAvailableSeats} / ${bus.capacity} seats',
             detail: bus.predictedPercent == null
                 ? 'Occupancy estimate unavailable'
-                : '${bus.predictedPercent}% occupied · ${bus.crowdLabel}',
+                : '${bus.predictedPercent}% occupied · ${bus.predictedSeatsLeftPercent}% provisionally available · ${bus.crowdLabel}',
             emphasized: true,
           ),
           const SizedBox(height: 15),
@@ -122,7 +133,7 @@ class BusCard extends StatelessWidget {
             Text(
                 bus.predictedSeatsLeftPercent == null
                     ? 'Seat estimate unavailable'
-                    : '${bus.predictedSeatsLeftPercent}% seats likely available',
+                    : '${bus.predictedAvailableSeats} seats · ${bus.predictedSeatsLeftPercent}% provisionally available',
                 style: const TextStyle(
                     color: AppColors.accent, fontWeight: FontWeight.w700)),
             const Spacer(),
@@ -143,6 +154,27 @@ class BusCard extends StatelessWidget {
         ]),
       );
 }
+
+String _etaUnavailableLabel(String? status) => switch (status) {
+      'NO_LOCATION' => 'ETA unavailable · no location',
+      'STALE_LOCATION' => 'ETA unavailable · stale location',
+      'DESTINATION_REACHED_OR_PASSED' => 'At/past destination',
+      'API_ERROR' => 'ETA unavailable · API error',
+      'ROUTE_COORDINATES_MISSING' => 'ETA unavailable · route data',
+      _ => 'ETA unavailable',
+    };
+
+String _etaUnavailableReason(String? status) => switch (status) {
+      'NO_LOCATION' => 'No bus location has been recorded.',
+      'STALE_LOCATION' =>
+        'The latest bus location is older than the allowed freshness window.',
+      'DESTINATION_REACHED_OR_PASSED' =>
+        'The latest location places the bus at or beyond the selected destination.',
+      'API_ERROR' => 'The backend ETA request failed.',
+      'ROUTE_COORDINATES_MISSING' =>
+        'One or more route stops have no coordinates.',
+      _ => 'ETA requires a recent location and route coordinates.',
+    };
 
 class _CapacitySummary extends StatelessWidget {
   const _CapacitySummary({required this.bus});
@@ -168,6 +200,27 @@ class _CapacitySummary extends StatelessWidget {
             style:
                 const TextStyle(color: AppColors.secondaryText, fontSize: 11),
           ),
+          if (const {
+            'API_ERROR',
+            'INVALID_RESPONSE',
+            'TRIP_CONTEXT_REQUIRED',
+            'NO_TICKET_DATA',
+            'NO_TICKET_DATA_FOR_TRIP',
+          }.contains(bus.occupancyStatus))
+            Text(
+              switch (bus.occupancyStatus) {
+                'API_ERROR' => 'Occupancy API request failed.',
+                'INVALID_RESPONSE' =>
+                  'Occupancy response was incomplete or invalid.',
+                'TRIP_CONTEXT_REQUIRED' =>
+                  'A single trip must be selected to calculate occupancy.',
+                'NO_TICKET_DATA' =>
+                  'No ticket events are recorded; zero is not assumed.',
+                _ => 'No ticket events are recorded for this trip.',
+              },
+              style:
+                  const TextStyle(color: AppColors.secondaryText, fontSize: 10),
+            ),
         ],
       );
 }

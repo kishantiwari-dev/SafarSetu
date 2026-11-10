@@ -24,7 +24,7 @@ class DevelopmentDataSeederTest {
         assertEquals(52, data.routeStops.size());
         assertEquals(13, data.buses.size());
         assertEquals(23, data.tickets.size());
-        assertEquals(19, data.locations.size());
+        assertEquals(22, data.locations.size());
         assertEquals(13, data.snapshots.size());
         assertSeedIntegrity(data);
         verify(data.stopRepository, times(22)).save(any(Stop.class));
@@ -32,7 +32,7 @@ class DevelopmentDataSeederTest {
         verify(data.routeStopRepository, times(52)).save(any(RouteStop.class));
         verify(data.busRepository, times(13)).save(any(Bus.class));
         verify(data.ticketRepository, times(23)).save(any(Ticket.class));
-        verify(data.locationRepository, times(19)).save(any(BusLocation.class));
+        verify(data.locationRepository, times(22)).save(any(BusLocation.class));
         verify(data.snapshotRepository, times(13)).save(any(OccupancySnapshot.class));
     }
 
@@ -48,7 +48,7 @@ class DevelopmentDataSeederTest {
         assertEquals(52, data.routeStops.size());
         assertEquals(13, data.buses.size());
         assertEquals(23, data.tickets.size());
-        assertEquals(19, data.locations.size());
+        assertEquals(22, data.locations.size());
         assertEquals(13, data.snapshots.size());
 
         for (var route : data.routes.values()) {

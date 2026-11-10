@@ -84,6 +84,21 @@ class RestApiControllerTest {
     }
 
     @Test
+    void exposesRouteBasedEtaWithItsSimulationAssumption() throws Exception {
+        when(busService.eta("BUS-SIM-011", "PARI_CHOWK")).thenReturn(new EtaDto(
+                "BUS-SIM-011", "PARI_CHOWK", 3, 1.2, "AVAILABLE", "SIMULATED",
+                "SIMULATED_ROUTE_ESTIMATE", "Route coordinates and configured average speed; no traffic or live speed.",
+                Instant.parse("2026-11-10T08:00:00Z"), Instant.parse("2026-11-10T08:00:30Z")));
+        mvc.perform(get("/api/buses/BUS-SIM-011/eta").param("toStopId", "PARI_CHOWK"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.etaMinutes").value(3))
+                .andExpect(jsonPath("$.status").value("AVAILABLE"))
+                .andExpect(jsonPath("$.dataOrigin").value("SIMULATED"))
+                .andExpect(jsonPath("$.estimateType").value("SIMULATED_ROUTE_ESTIMATE"));
+        verify(busService).eta("BUS-SIM-011", "PARI_CHOWK");
+    }
+
+    @Test
     void createsTicketWith201AndDoesNotAcceptClientSourceClassification() throws Exception {
         when(ticketService.ingest(any())).thenReturn(new TicketService.TicketReceipt(
                 "ticket-1", "BUS-SIM-001", "trip-1", 2, Instant.parse("2026-10-24T08:00:00Z"), "SIMULATED", "ACCEPTED"));

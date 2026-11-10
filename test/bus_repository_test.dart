@@ -157,7 +157,7 @@ void main() {
     repository.close();
   });
 
-  test('simulated bus occupancy search is scoped to the ETM daily trip',
+  test('simulated bus occupancy search uses the backend demo trip and maps ETA',
       () async {
     final simulatedPage = {
       'content': [
@@ -191,6 +191,20 @@ void main() {
               }),
               200);
         }
+        if (request.url.path == '/api/buses/BUS-1/eta') {
+          expect(request.url.queryParameters['toStopId'], 'STOP-B');
+          return http.Response(
+              jsonEncode({
+                'busId': 'BUS-1',
+                'destinationStopId': 'STOP-B',
+                'etaMinutes': 4,
+                'status': 'AVAILABLE',
+                'dataOrigin': 'SIMULATED',
+                'estimateType': 'SIMULATED_ROUTE_ESTIMATE',
+                'assumption': 'Route estimate only; no live traffic.',
+              }),
+              200);
+        }
         return http.Response('', 404);
       }),
     ));
@@ -200,6 +214,9 @@ void main() {
     expect(buses.single.tripId, tripId);
     expect(buses.single.predictedOccupancy, 7);
     expect(buses.single.backendAvailableSeats, 33);
+    expect(tripId, 'SIM-TRIP-BUS-1-DEMO-01');
+    expect(buses.single.etaMinutes, 4);
+    expect(buses.single.etaDataOrigin, 'SIMULATED');
     repository.close();
   });
 

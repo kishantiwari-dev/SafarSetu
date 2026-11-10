@@ -15,8 +15,7 @@ import java.util.*;
 /** Stable development fixtures only. Existing rows are never cleared or overwritten. */
 @Configuration @Profile("dev")
 public class DevelopmentDataSeeder {
-    // Recent synthetic tracks stay usable for the local stale-location demo. Once inserted,
-    // stable IDs make this anchor persistent across restarts; records are never rewritten.
+    // Ticket timestamps form a stable simulated run. Existing rows are never rewritten.
     private static final Instant BASE=Instant.now().truncatedTo(ChronoUnit.MINUTES).minusSeconds(45*60L);
     private record S(String id,String name,double lat,double lon){}
     private record R(String id,String name,List<String> stops){}
@@ -81,13 +80,15 @@ public class DevelopmentDataSeeder {
     private static S s(String id,String name,double lat,double lon){return new S(id,name,lat,lon);}
     private static R r(String id,String name,String... stops){return new R(id,name,List.of(stops));}
     void seedLocations(BusLocationRepository lr,Map<String,Bus> buses,Map<String,Stop> stops){
-        String[][] tracks={{"BUS-SIM-001","BOTANICAL_GARDEN","SECTOR_18","SECTOR_62"},{"BUS-SIM-002","SECTOR_62","SECTOR_51","SECTOR_76"},{"BUS-SIM-003","GAUR_CITY","KISAN_CHOWK","GREATER_NOIDA_WEST"},{"BUS-SIM-004","KASNA","SHARDA","GBU"},{"BUS-SIM-006","DADRI_RAIL","GBU","KASNA"},{"BUS-SIM-007","KP_II","PARI_CHOWK","ALPHA_1"}};
+        String[][] tracks={{"BUS-SIM-001","BOTANICAL_GARDEN","SECTOR_18","SECTOR_62"},{"BUS-SIM-002","SECTOR_62","SECTOR_51","SECTOR_76"},{"BUS-SIM-003","GAUR_CITY","KISAN_CHOWK","GREATER_NOIDA_WEST"},{"BUS-SIM-004","KASNA","SHARDA","GBU"},{"BUS-SIM-006","DADRI_RAIL","GBU","KASNA"},{"BUS-SIM-007","KP_II","PARI_CHOWK","ALPHA_1"},{"BUS-SIM-011","ALPHA_1"},{"BUS-SIM-012","ALPHA_1"},{"BUS-SIM-013","ALPHA_1"}};
+        Instant latestSampleAt=Instant.now().truncatedTo(ChronoUnit.MINUTES).minusSeconds(120L);
         for(String[] track:tracks){
             Bus bus=requireBus(buses,track[0]);
             for(int i=1;i<track.length;i++){
                 String stopId=track[i];Stop stop=requireStop(stops,stopId);
                 String id="LOC-"+track[0]+"-"+(i-1);if(lr.existsById(id))continue;
-                lr.save(new BusLocation(id,bus,stop.getLatitude()+.0007,stop.getLongitude()+.0004,BASE.plusSeconds(i*900L),DataOrigin.SIMULATED));
+                long earlierStops=(track.length-1L-i)*900L;
+                lr.save(new BusLocation(id,bus,stop.getLatitude()+.0007,stop.getLongitude()+.0004,latestSampleAt.minusSeconds(earlierStops),DataOrigin.SIMULATED));
             }
         }
         Bus bus=requireBus(buses,"BUS-SIM-008");Stop stop=requireStop(stops,"SECTOR_18");

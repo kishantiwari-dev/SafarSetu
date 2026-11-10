@@ -1,13 +1,8 @@
-/// Returns the default simulated trip identifier used by the ETM for a bus.
+/// Returns the backend's stable trip identifier for a simulated demo bus.
 ///
-/// Keeping this convention shared lets passenger occupancy lookups stay scoped
-/// to the same daily trip used by the conductor workflow.
-String simulatedTripIdForBus(String busId, {DateTime? now}) {
-  final day = (now ?? DateTime.now())
-      .toUtc()
-      .toIso8601String()
-      .substring(0, 10)
-      .replaceAll('-', '');
+/// The backend seed data and ETM validation share this convention. Keeping it
+/// aligned ensures bus search reads the same tickets used by the ETM workflow.
+String simulatedTripIdForBus(String busId) {
   final id = busId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
-  return 'SIM-$id-$day';
+  return 'SIM-TRIP-$id-DEMO-01';
 }
